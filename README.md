@@ -72,14 +72,29 @@ cd server
 # Edit the .env file with your credentials
 ```
 
-Edit `server/.env` with your credentials:
+Copy `server/.env.example` to `server/.env` and fill in your credentials:
+
+```bash
+cp server/.env.example server/.env
+```
 
 ```env
 PORT=5000
-MONGO_URI=mongodb+srv://<username>:<password>@cluster.mongodb.net/<dbname>?appName=Cluster0
+MONGO_URI=mongodb+srv://<username>:<password>@cluster.mongodb.net/<dbname>?retryWrites=true&w=majority
 JWT_SECRET=your_jwt_secret_key_here
 GROQ_API_KEY=your_groq_api_key_here
+CLIENT_URL=http://localhost:3000
+NODE_ENV=development
 ```
+
+| Variable | Description |
+|----------|-------------|
+| `PORT` | Server port (default: 5000) |
+| `MONGO_URI` | MongoDB connection string from [MongoDB Atlas](https://www.mongodb.com/atlas) |
+| `JWT_SECRET` | Secret key for signing JWT tokens (generate a strong random string) |
+| `GROQ_API_KEY` | API key from [console.groq.com](https://console.groq.com) |
+| `CLIENT_URL` | Frontend URL for CORS (set to your deployed URL in production) |
+| `NODE_ENV` | Set to `production` on deployment servers |
 
 ### 3. Start the Application
 
@@ -113,14 +128,44 @@ The app will open at **http://localhost:3000**.
 
 ## Deployment
 
-### Building the Frontend
+This app is designed for a **split deployment** strategy:
 
-```bash
-cd client
-npm run build
-```
+- **Frontend** → [Vercel](https://vercel.com) or [Netlify](https://netlify.com)
+- **Backend** → [Render](https://render.com) or [Railway](https://railway.app)
+- **Database** → [MongoDB Atlas](https://www.mongodb.com/atlas) (free M0 cluster)
 
-The built files will be in `client/dist/`. You can serve them with the Express backend or deploy to any static hosting (Vercel, Netlify, etc.).
+### Option A: Deploy Backend to Render
+
+1. Push your code to GitHub
+2. Go to [render.com](https://render.com) → **New +** → **Web Service** → connect your repo
+3. Configure:
+   - **Root Directory**: `server`
+   - **Build Command**: `npm install`
+   - **Start Command**: `node server.js`
+   - **Plan**: Free
+4. Add environment variables (`MONGO_URI`, `JWT_SECRET`, `GROQ_API_KEY`, `CLIENT_URL`, `NODE_ENV=production`)
+5. Deploy → copy your Render URL (e.g. `https://your-app.onrender.com`)
+
+> ⚠️ Free Render instances spin down after 15 min of inactivity. The first request after idle takes ~30s.
+
+### Option B: Deploy Frontend to Vercel
+
+1. Go to [vercel.com](https://vercel.com) → **Add New → Project** → import your GitHub repo
+2. Configure:
+   - **Root Directory**: `client`
+   - **Framework Preset**: Vite
+   - **Build Command**: `npm run build` (auto-detected)
+   - **Output Directory**: `dist`
+3. Add environment variable:
+   - `VITE_API_URL` = `https://your-render-app.onrender.com/api`
+4. Deploy
+
+### Option C: All-in-One on Railway
+
+1. Go to [railway.app](https://railway.app) → **New Project** → **Deploy from GitHub**
+2. Add a **Web Service** → root: `server`, start: `node server.js`
+3. Add a **Static Site** → root: `client`, build: `npm run build`, publish: `dist`
+4. Add environment variables to both services
 
 ## What I Learned
 
