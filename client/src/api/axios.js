@@ -1,7 +1,13 @@
 import axios from 'axios';
 
+// Auto-detect API URL: use env var, or proxy in dev, or Render URL in production
+const API_URL = import.meta.env.VITE_API_URL || 
+  (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? '/api'
+    : 'https://chatbot-x098.onrender.com/api');
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '/api',
+  baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
   },
