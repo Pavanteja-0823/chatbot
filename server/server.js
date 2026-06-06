@@ -28,11 +28,11 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'AI Chat App server is running' });
 });
 
-// Serve static frontend in production
+// In production (split deployment), the frontend is hosted separately on Vercel
+// This server only handles API requests. Non-API routes return 404.
 if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, '../client/dist')));
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../client/dist/index.html'));
+  app.get('/', (req, res) => {
+    res.json({ message: 'ANPA AI API is running. Frontend is hosted separately.' });
   });
 }
 
