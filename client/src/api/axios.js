@@ -1,10 +1,7 @@
 import axios from 'axios';
 
-// Auto-detect API URL: use env var, or proxy in dev, or Render URL in production
-const API_URL = import.meta.env.VITE_API_URL || 
-  (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-    ? '/api'
-    : 'https://chatbot-x098.onrender.com/api');
+// API URL: use env var if set, otherwise rely on Vite proxy in dev or same-origin in prod
+const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 const api = axios.create({
   baseURL: API_URL,
@@ -29,7 +26,10 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      window.location.href = '/login';
+      // Only redirect if not already on the login page to avoid clearing error state
+      if (!window.location.pathname.startsWith('/login')) {
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }

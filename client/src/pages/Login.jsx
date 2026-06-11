@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -12,9 +12,16 @@ export default function Login() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login, register } = useAuth();
+  const { user, login, register } = useAuth();
   const navigate = useNavigate();
   const formRef = useRef(null);
+
+  // Navigate to chat once user state is updated after login/register
+  useEffect(() => {
+    if (user) {
+      navigate('/', { replace: true });
+    }
+  }, [user, navigate]);
 
   const switchTab = useCallback((t) => {
     if (t === tab || animating) return;
@@ -47,7 +54,7 @@ export default function Login() {
       setLoading(true);
       try {
         await register(name, email, password);
-        navigate('/');
+        // Navigation happens in useEffect when user state updates
       } catch (err) {
         setError(err.response?.data?.message || 'Registration failed');
       } finally {
@@ -61,7 +68,7 @@ export default function Login() {
       setLoading(true);
       try {
         await login(email, password);
-        navigate('/');
+        // Navigation happens in useEffect when user state updates
       } catch (err) {
         setError(err.response?.data?.message || 'Login failed');
       } finally {
