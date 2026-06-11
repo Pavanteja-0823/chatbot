@@ -56,6 +56,8 @@ export default function Login() {
         await register(name, email, password);
         // Navigation happens in useEffect when user state updates
       } catch (err) {
+        console.error('Registration error full object:', err);
+        console.error('Registration error response:', err.response?.data);
         setError(err.response?.data?.message || 'Registration failed');
       } finally {
         setLoading(false);
@@ -70,6 +72,8 @@ export default function Login() {
         await login(email, password);
         // Navigation happens in useEffect when user state updates
       } catch (err) {
+        console.error('Login error full object:', err);
+        console.error('Login error response:', err.response?.data);
         setError(err.response?.data?.message || 'Login failed');
       } finally {
         setLoading(false);
