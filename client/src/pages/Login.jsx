@@ -2,6 +2,19 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
+const getAuthErrorMessage = (err, fallback) => {
+  if (err.response?.data?.message) {
+    return err.response.data.message;
+  }
+  if (err.code === 'ERR_NETWORK') {
+    return 'Cannot reach the server. Check the deployed API URL and CORS settings.';
+  }
+  if (err.response?.status === 404) {
+    return 'Authentication API not found. Check VITE_API_URL in the frontend deployment.';
+  }
+  return fallback;
+};
+
 export default function Login() {
   const [tab, setTab] = useState('signin');
   const [direction, setDirection] = useState('right');
@@ -58,7 +71,7 @@ export default function Login() {
       } catch (err) {
         console.error('Registration error full object:', err);
         console.error('Registration error response:', err.response?.data);
-        setError(err.response?.data?.message || 'Registration failed');
+        setError(getAuthErrorMessage(err, 'Registration failed'));
       } finally {
         setLoading(false);
       }
@@ -74,7 +87,7 @@ export default function Login() {
       } catch (err) {
         console.error('Login error full object:', err);
         console.error('Login error response:', err.response?.data);
-        setError(err.response?.data?.message || 'Login failed');
+        setError(getAuthErrorMessage(err, 'Login failed'));
       } finally {
         setLoading(false);
       }
