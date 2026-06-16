@@ -1,10 +1,16 @@
 import axios from 'axios';
 
 const configuredApiUrl = import.meta.env.VITE_API_URL?.trim().replace(/\/+$/, '');
+const renderApiUrl =
+  import.meta.env.PROD && window.location.hostname === 'anpa.onrender.com'
+    ? 'https://anpa-ai-server.onrender.com/api'
+    : '';
 const API_URL = configuredApiUrl
   ? configuredApiUrl.endsWith('/api')
     ? configuredApiUrl
     : `${configuredApiUrl}/api`
+  : renderApiUrl
+    ? renderApiUrl
   : '/api';
 
 const api = axios.create({
