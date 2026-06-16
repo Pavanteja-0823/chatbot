@@ -9,10 +9,18 @@ exports.register = async (req, res) => {
   try {
     const { name, email, password } = req.body;
 
-    if (!name || !email || !password) {
+    if (
+      typeof name !== 'string' ||
+      typeof email !== 'string' ||
+      typeof password !== 'string' ||
+      !name.trim() ||
+      !email.trim() ||
+      !password
+    ) {
       return res.status(400).json({ message: 'All fields are required' });
     }
 
+    const normalizedName = name.trim();
     const normalizedEmail = email.trim().toLowerCase();
     const existingUser = await User.findOne({ email: normalizedEmail });
     if (existingUser) {
@@ -20,7 +28,7 @@ exports.register = async (req, res) => {
     }
 
     const user = await User.create({
-      name: name.trim(),
+      name: normalizedName,
       email: normalizedEmail,
       password,
     });
@@ -51,7 +59,12 @@ exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    if (!email || !password) {
+    if (
+      typeof email !== 'string' ||
+      typeof password !== 'string' ||
+      !email.trim() ||
+      !password
+    ) {
       return res.status(400).json({ message: 'Email and password are required' });
     }
 

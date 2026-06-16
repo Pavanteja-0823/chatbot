@@ -9,14 +9,35 @@ const chatRoutes = require('./routes/chatRoutes');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+const requiredEnvVars = ['MONGO_URI', 'JWT_SECRET', 'GROQ_API_KEY'];
+const missingEnvVars = requiredEnvVars.filter((key) => !process.env[key]);
+
+if (missingEnvVars.length > 0) {
+  console.error(`Missing required environment variable(s): ${missingEnvVars.join(', ')}`);
+  process.exit(1);
+}
+
 const configuredOrigins = (process.env.CLIENT_URL || '')
   .split(',')
   .map((origin) => origin.trim().replace(/\/+$/, ''))
   .filter(Boolean);
 
+const isVercelPreviewOrigin = (origin) => {
+  try {
+    const { hostname, protocol } = new URL(origin);
+    return protocol === 'https:' && hostname.endsWith('.vercel.app');
+  } catch {
+    return false;
+  }
+};
+
 const allowedOrigins = new Set([
   'http://localhost:3000',
   'http://127.0.0.1:3000',
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  'http://localhost:4173',
+  'http://127.0.0.1:4173',
   ...configuredOrigins,
 ]);
 
@@ -24,7 +45,12 @@ const allowedOrigins = new Set([
 app.use(cors({
   origin(origin, callback) {
     // Requests without an Origin header include health checks and server-to-server calls.
-    if (!origin || allowedOrigins.has(origin.replace(/\/+$/, ''))) {
+    const normalizedOrigin = origin?.replace(/\/+$/, '');
+    if (
+      !origin ||
+      allowedOrigins.has(normalizedOrigin) ||
+      isVercelPreviewOrigin(normalizedOrigin)
+    ) {
       return callback(null, true);
     }
 

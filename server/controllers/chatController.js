@@ -1,16 +1,38 @@
 const Groq = require('groq-sdk');
+const mongoose = require('mongoose');
 const Conversation = require('../models/Conversation');
 
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+const groqApiKey = process.env.GROQ_API_KEY?.trim();
+const hasValidGroqKey =
+  Boolean(groqApiKey) &&
+  !groqApiKey.includes('<') &&
+  !groqApiKey.toLowerCase().includes('replace');
+
+const groq = hasValidGroqKey ? new Groq({ apiKey: groqApiKey }) : null;
 
 exports.sendMessage = async (req, res) => {
   try {
+    if (!groq) {
+      return res.status(503).json({
+        message: 'AI service is not configured correctly. Please update the Groq API key.',
+      });
+    }
+
     const { conversationId, message } = req.body;
 
-    if (!message || !message.trim()) {
+    if (typeof message !== 'string' || !message.trim()) {
       return res.status(400).json({ message: 'Message is required' });
     }
 
+    if (
+      conversationId !== undefined &&
+      (typeof conversationId !== 'string' || !mongoose.isValidObjectId(conversationId))
+    ) {
+      return res.status(400).json({ message: 'Invalid conversation ID' });
+    }
+
+    const normalizedMessage = message.trim();
+    const isNewConversation = !conversationId;
     let conversation;
 
     if (conversationId) {
@@ -27,7 +49,9 @@ exports.sendMessage = async (req, res) => {
       // Create new conversation
       // Generate title from the first 50 chars of the user's message
       const title =
-        message.length > 50 ? message.substring(0, 50) + '...' : message;
+        normalizedMessage.length > 50
+          ? normalizedMessage.substring(0, 50) + '...'
+          : normalizedMessage;
 
       conversation = await Conversation.create({
         userId: req.user._id,
@@ -37,18 +61,18 @@ exports.sendMessage = async (req, res) => {
     }
 
     // Add user message to conversation
-    conversation.messages.push({ role: 'user', content: message });
-
-    // Build message history for Groq API
-    const messagesForGroq = [
-      { role: 'system', content: 'You are a helpful AI assistant.' },
-      ...conversation.messages.map((msg) => ({
-        role: msg.role,
-        content: msg.content,
-      })),
-    ];
+    conversation.messages.push({ role: 'user', content: normalizedMessage });
 
     try {
+      // Build message history for Groq API
+      const messagesForGroq = [
+        { role: 'system', content: 'You are a helpful AI assistant.' },
+        ...conversation.messages.map((msg) => ({
+          role: msg.role,
+          content: msg.content,
+        })),
+      ];
+
       // Call Groq API
       const completion = await groq.chat.completions.create({
         messages: messagesForGroq,
@@ -74,11 +98,36 @@ exports.sendMessage = async (req, res) => {
     } catch (groqError) {
       console.error('Groq API error:', groqError);
 
-      // If Groq API fails, remove the user message we added
-      conversation.messages.pop();
-      await conversation.save();
+      if (isNewConversation) {
+        await conversation.deleteOne();
+      } else {
+        // Keep existing conversations unchanged when the AI request fails.
+        conversation.messages.pop();
+        await conversation.save();
+      }
 
-      res.status(502).json({ message: 'AI service unavailable. Please try again later.' });
+      // Check for auth-related errors
+      const errorMessage = groqError.message || '';
+      if (
+        errorMessage.includes('API_KEY') ||
+        errorMessage.includes('API key') ||
+        errorMessage.includes('unauthorized') ||
+        errorMessage.includes('forbidden') ||
+        errorMessage.includes('401') ||
+        errorMessage.includes('403')
+      ) {
+        return res.status(503).json({
+          message: 'AI service is not configured correctly. Please update the Groq API key.',
+        });
+      }
+
+      if (errorMessage.includes('429') || groqError.status === 429) {
+        return res.status(503).json({
+          message: 'AI service is temporarily rate-limited. Please try again later.',
+        });
+      }
+
+      return res.status(502).json({ message: 'AI service unavailable. Please try again later.' });
     }
   } catch (error) {
     console.error('Send message error:', error);
@@ -101,6 +150,10 @@ exports.getHistory = async (req, res) => {
 
 exports.getConversation = async (req, res) => {
   try {
+    if (!mongoose.isValidObjectId(req.params.id)) {
+      return res.status(400).json({ message: 'Invalid conversation ID' });
+    }
+
     const conversation = await Conversation.findOne({
       _id: req.params.id,
       userId: req.user._id,
@@ -119,6 +172,10 @@ exports.getConversation = async (req, res) => {
 
 exports.deleteConversation = async (req, res) => {
   try {
+    if (!mongoose.isValidObjectId(req.params.id)) {
+      return res.status(400).json({ message: 'Invalid conversation ID' });
+    }
+
     const conversation = await Conversation.findOneAndDelete({
       _id: req.params.id,
       userId: req.user._id,

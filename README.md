@@ -20,7 +20,7 @@ A full-stack ChatGPT-like AI chat application built with React, Express, MongoDB
 | Frontend    | React 18, Vite, Tailwind CSS, React Router      |
 | Backend     | Node.js, Express.js                             |
 | Database    | MongoDB with Mongoose ODM                       |
-| AI API      | Groq SDK (llama3-8b-8192 model)                 |
+| AI API      | Groq API (llama3-8b-8192 model)                |
 | Auth        | JSON Web Tokens (JWT) + bcrypt                  |
 
 ## Project Structure
@@ -170,7 +170,7 @@ This app is designed for a **split deployment** strategy:
 ## What I Learned
 
 - Building a full-stack application from scratch with React and Express
-- Integrating third-party AI APIs (Groq) with streaming context awareness
+- Integrating third-party AI APIs with persistent chat context
 - Implementing JWT authentication with protected routes
 - Managing complex state with React Context API
 - Designing responsive dark-themed UIs with Tailwind CSS
