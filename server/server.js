@@ -22,10 +22,13 @@ const configuredOrigins = (process.env.CLIENT_URL || '')
   .map((origin) => origin.trim().replace(/\/+$/, ''))
   .filter(Boolean);
 
-const isVercelPreviewOrigin = (origin) => {
+const isDeployPreviewOrigin = (origin) => {
   try {
     const { hostname, protocol } = new URL(origin);
-    return protocol === 'https:' && hostname.endsWith('.vercel.app');
+    return (
+      protocol === 'https:' &&
+      (hostname.endsWith('.vercel.app') || hostname.endsWith('.onrender.com') || hostname.endsWith('.netlify.app'))
+    );
   } catch {
     return false;
   }
@@ -49,7 +52,7 @@ app.use(cors({
     if (
       !origin ||
       allowedOrigins.has(normalizedOrigin) ||
-      isVercelPreviewOrigin(normalizedOrigin)
+      isDeployPreviewOrigin(normalizedOrigin)
     ) {
       return callback(null, true);
     }
